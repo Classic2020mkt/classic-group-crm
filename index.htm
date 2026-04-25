@@ -2011,6 +2011,10 @@ function qIssue() {
   renderQHistory();
   toast('Quote ' + ref + ' issued!', 'ok');
   qShowTab('history');
+  // Auto-backup to Drive if connected
+  if (driveAccessToken) {
+    setTimeout(driveSync, 1000);
+  }
 }
 
 function qPrint() {
@@ -2067,7 +2071,23 @@ function qClosePreview() {
 }
 
 function qPrintPreview() {
-  window.print();
+  // Ensure the injected print style is active
+  var styleEl = ge('q-print-style');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'q-print-style';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = [
+    '@media print{',
+    'body>*{display:none!important}',
+    '#q-out-overlay{display:block!important;position:static!important;height:auto!important;overflow:visible!important;z-index:auto!important}',
+    '#q-out-toolbar{display:none!important}',
+    '#q-out-paper{max-width:100%!important;box-shadow:none!important;margin:0!important;padding:0!important}',
+    '.qp-top-bar{font-size:8px!important}',
+    '}'
+  ].join('');
+  setTimeout(function(){ window.print(); }, 100);
 }
 
 function downloadHTML(innerContent, refName) {
@@ -2159,26 +2179,11 @@ function qDriveDownload() {
 }
 
 function printSavedQuote(idx) {
-  var d = getData();
-  var q = d.quotes[idx];
-  if (!q || !q.savedHTML) { toast('No saved HTML for this quote','err'); return; }
-  var pt = ge('print-target');
-  if (!pt) {
-    pt = document.createElement('div');
-    pt.id = 'print-target';
-    document.body.appendChild(pt);
+    var d = getData();
+    var q = d.quotes[idx];
+    if (!q || !q.savedHTML) { toast('No saved HTML for this quote','err'); return; }
+    openQuoteWindow(q.savedHTML);
   }
-  pt.innerHTML = q.savedHTML;
-  pt.style.display = 'block';
-  setTimeout(function() {
-    window.print();
-    setTimeout(function() {
-      pt.style.display = 'none';
-      pt.innerHTML = '';
-    }, 1500);
-  }, 300);
-  toast('Print dialog opening — choose Save as PDF','ok');
-}
 
 function downloadSavedQuote(idx) {
   var d = getData();
